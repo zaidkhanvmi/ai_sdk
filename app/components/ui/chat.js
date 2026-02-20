@@ -36,29 +36,21 @@ export default function Chat() {
             return;
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let aiMessage = "";
+        const data = await res.json();
+        const aiMessage = data.choices?.[0]?.message?.content;  // Extract only the content
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            aiMessage += decoder.decode(value, { stream: true });
+        // Finalize assistant message once done
+        if (aiMessage) {
             setMessages(prev => [
-                ...prev.filter(m => m.role !== "assistant-temp"), // remove temp
-                { role: "assistant-temp", content: aiMessage }
+                ...prev,
+                { role: "assistant", content: aiMessage }
             ]);
         }
-
-        // finalize assistant message
-        setMessages(prev =>
-            prev.map(m => (m.role === "assistant-temp" ? { role: "assistant", content: m.content } : m))
-        );
 
         setLoading(false);
     };
 
-    console.log("Messages",messages);
+    console.log(messages[1]?.content);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-pink-400 to-purple-500 p-4">
