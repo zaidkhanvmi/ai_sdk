@@ -1,4 +1,7 @@
+import React from "react";
+
 const Hero = () => {
+
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black text-white py-24">
 
