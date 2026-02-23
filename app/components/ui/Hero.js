@@ -35,7 +35,7 @@ const Hero = () => {
 
                 {/* CTA */}
                 <div className="mt-10">
-                    <button className="relative rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-4 text-white font-semibold shadow-[0_0_30px_rgba(168,85,247,0.6)] transition hover:scale-105">
+                    <button className="relative rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-4 text-white font-semibold shadow-[0_0_30px_rgba(168,85,247,0.6)] transition hover:scale-105 cursor-pointer">
                         Try AI Assistant Now
                     </button>
                 </div>

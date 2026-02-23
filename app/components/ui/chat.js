@@ -1,86 +1,125 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { MessageCircle, X, Send } from "lucide-react";
 
 export default function Chat() {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     const sendMessage = async () => {
-        if (!message) return;
+        if (!message.trim()) return;
 
-        // Add user's message
-        setMessages(prev => [...prev, { role: "user", content: message }]);
-        setMessage("");
+        setMessage("")
+        setMessages((prev) => [...prev, { role: "user", content: message }]);
         setLoading(true);
 
         const res = await fetch("/api/generate", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message }),
         });
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error("API error:", res.status, errorText);
-            setLoading(false);
-            return;
-        }
-
-        if (!res.body) {
-            console.error("No response body (stream) from /api/generate");
-            setLoading(false);
-            return;
-        }
-
         const data = await res.json();
-        const aiMessage = data.choices?.[0]?.message?.content;  // Extract only the content
+        const aiMessage = data?.choices?.[0]?.message?.content;
 
-        // Finalize assistant message once done
         if (aiMessage) {
-            setMessages(prev => [
+            setMessages((prev) => [
                 ...prev,
-                { role: "assistant", content: aiMessage }
+                { role: "assistant", content: aiMessage },
             ]);
         }
 
         setLoading(false);
     };
 
-    console.log(messages[1]?.content);
-
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-pink-400 to-purple-500 p-4">
-            <div className="w-full max-w-xl bg-white rounded-xl shadow-lg p-6 flex flex-col space-y-4">
-                {messages.map((m, i) => (
-                    <div
-                        key={i}
-                        className={`p-3 rounded-lg ${m.role === "user" ? "bg-pink-100 self-end" : "bg-purple-100 self-start"}`}
-                    >
-                        <strong>{m.role === "user" ? "You" : "AI"}:</strong> {m.content}
+        <>
+            {/* Floating Button */}
+            <button
+                onClick={() => setOpen(!open)}
+                className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-500 hover:scale-105 transition-all duration-200 text-white rounded-full shadow-2xl flex items-center justify-center z-50 cursor-pointer"
+            >
+                {open ? <X size={24} /> : <MessageCircle size={24} />}
+            </button>
+
+            {/* Chat Window */}
+            <div
+                className={`fixed bottom-24 right-6 w-[360px] h-[500px] bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden z-50 border transition-all duration-300 ${open
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4 pointer-events-none"
+                    }`}
+            >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h2 className="font-semibold text-lg">AI Assistant</h2>
+                        <p className="text-xs opacity-80">Online</p>
                     </div>
-                ))}
-
-                {loading && <div className="italic text-gray-500">AI is typing...</div>}
-
-                <div className="flex space-x-2 mt-2">
-                    <input
-                        className="flex-1 border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                        value={message}
-                        onChange={e => setMessage(e.target.value)}
-                        placeholder="Type your message..."
-                    />
                     <button
-                        className="bg-pink-500 text-white cursor-pointer px-4 py-2 rounded-lg hover:bg-pink-600"
-                        onClick={sendMessage}
+                        onClick={() => setOpen(false)}
+                        className="cursor-pointer hover:opacity-80 transition"
                     >
-                        Send
+                        <X size={20} />
                     </button>
                 </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gradient-to-b from-white to-gray-50 scroll-hidden">
+                    {messages.map((m, i) => (
+                        <div
+                            key={i}
+                            className={`flex ${m.role === "user" ? "justify-end" : "justify-start"
+                                }`}
+                        >
+                            <div
+                                className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === "user"
+                                    ? "bg-gradient-to-br from-pink-500 to-purple-500 text-white rounded-br-sm"
+                                    : "bg-white border text-gray-800 rounded-bl-sm"
+                                    }`}
+                            >
+                                {m.content}
+                            </div>
+                        </div>
+                    ))}
+
+                    {loading && (
+                        <div className="text-sm text-gray-400 animate-pulse">
+                            AI is typing...
+                        </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input Section */}
+                <div className="px-4 py-4 bg-white border-t">
+                    <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 shadow-inner focus-within:ring-2 focus-within:ring-pink-400 transition">
+                        <input
+                            className="flex-1 bg-transparent outline-none text-sm px-2"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="Type your message..."
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") sendMessage();
+                            }}
+                        />
+                        <button
+                            onClick={sendMessage}
+                            className="bg-gradient-to-br from-pink-500 to-purple-500 hover:opacity-90 text-white p-2 rounded-full cursor-pointer transition"
+                        >
+                            <Send size={18} />
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
