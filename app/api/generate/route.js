@@ -1,10 +1,75 @@
 import { NextResponse } from "next/server";
-import { streamText, convertToModelMessages } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText } from "ai";
 
-export async function GET(request) {
-    const msg = NextResponse.json({ message: "Helo world from Generate!" });
-    return msg;
+
+export async function GET() {
+    return NextResponse.json({ message: "Hello world from Generate!" });
 }
+
+// export async function POST(request) {
+//     try {
+//         const { message } = await request.json();
+
+//         if (!message || !message.trim()) {
+//             return NextResponse.json(
+//                 { error: "Message be atleast one token" },
+//                 { status: 400 }
+//             )
+//         }
+
+//         const companyInfo = `
+//         Vibrant Media Inc is a digital agency that provides:
+//         - Web Development
+//         - SaaS Development
+//         - SEO & Marketing
+//         - Branding & Design
+
+//         We specialize in multi-tenant platforms and enterprise systems.
+//         `;
+
+//         const systemPrompt = `
+//         You are the official AI assistant of Vibrant Media Inc.
+
+//         Use the company information below to answer questions:
+
+//         ${companyInfo}
+
+//         Keep answers short, professional, and sales-focused.
+//         If the question is unrelated to our services, politely redirect users to our contact page.
+//         `;
+
+//         const messages = [
+//             { role: "system", content: systemPrompt },
+//             { role: "user", content: message },
+//         ];
+
+//         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+//             method: 'POST',
+//             headers: {
+//                 Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({
+//                 model: 'openai/gpt-4o-mini',
+//                 messages: messages,
+//             }),
+//         });
+
+//         const data = await response.json();
+
+//         return NextResponse.json(data);
+
+//     } catch (error) {
+//         console.log("Api Key", error);
+//         return NextResponse.json({ message: error.message }, { status: 500 });
+//     }
+// }
+
+const openai = createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1",
+});
 
 export async function POST(request) {
     try {
@@ -12,79 +77,47 @@ export async function POST(request) {
 
         if (!message || !message.trim()) {
             return NextResponse.json(
-                { error: "Message be atleast one token" },
-                { status: 400 }
-            )
+                { error: "Message must be at least one token." },
+                { status: 400 },
+            );
         }
 
         const companyInfo = `
-        Vibrant Media Inc is a digital agency that provides:
-        - Web Development
-        - SaaS Development
-        - SEO & Marketing
-        - Branding & Design
+Vibrant Media Inc is a digital agency that provides:
+- Web Development
+- SaaS Development
+- SaaS Development
+- SEO & Marketing
+- Branding & Design
 
-        We specialize in multi-tenant platforms and enterprise systems.
+We specialize in multi-tenant platforms and enterprise systems.
         `;
 
         const systemPrompt = `
-        You are the official AI assistant of Vibrant Media Inc.
+You are the official AI assistant of Vibrant Media Inc.
 
-        Use the company information below to answer questions:
+Use the company information below to answer questions:
 
-        ${companyInfo}
+${companyInfo}
 
-        Keep answers short, professional, and sales-focused.
-        If the question is unrelated to our services, politely redirect users to our contact page.
+Keep answers short, professional, and sales-focused.
+If the question is unrelated to our services, politely redirect users to our contact page.
         `;
 
-        const messages = [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: message },
-        ];
-
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'openai/gpt-4o-mini',
-                messages: messages,
-            }),
+        const stream = await streamText({
+            model: openai("openai/gpt-4o-mini"),
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: message },
+            ],
         });
 
-        const data = await response.json();
-
-        return NextResponse.json(data);
-
+        return stream.toTextStreamResponse();
     } catch (error) {
-        console.log("Api Key", error);
-        return NextResponse.json({ message: error.message }, { status: 500 });
+        console.error("API Error", error);
+        return new Response(
+            JSON.stringify({ message: `Api error: ${error.message || "Unknown error"}` }),
+            { headers: { "Content-Type": "application/json" }, status: 500 },
+        );
     }
 }
-
-// export async function POST(request) {
-//     try {
-//         const { message } = await request.json();
-
-//         const messages = convertToModelMessages([
-//             { role: "user", content: message }
-//         ]);
-
-//         const stream = await streamText({
-//             model: "openai/gpt-4o-mini",
-//             messages,
-//         });
-
-//         return stream.toTextStreamResponse();
-
-//     } catch (error) {
-//         console.log("Api Error", error.message);
-//         return new Response(
-//             JSON.stringify({ message: `Api error ${error.message}` }),
-//             { headers: { "Content-Type": "application/json" }, status: 500 }
-//         );
-//     }
-// }

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 
-export default function Chat() {
+const Chat = () => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -17,29 +17,61 @@ export default function Chat() {
     const sendMessage = async () => {
         if (!message.trim()) return;
 
-        setMessage("")
-        setMessages((prev) => [...prev, { role: "user", content: message }]);
+        const userMessage = message;
+        setMessage("");
+
+        // Add user message and a placeholder assistant message for streaming
+        setMessages((prev) => [
+            ...prev,
+            { role: "user", content: userMessage },
+            { role: "assistant", content: "" },
+        ]);
         setLoading(true);
 
-        const res = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message }),
-        });
+        try {
+            const res = await fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userMessage }),
+            });
 
-        const data = await res.json();
-        const aiMessage = data?.choices?.[0]?.message?.content;
+            if (!res.ok || !res.body) {
+                setLoading(false);
+                return;
+            }
 
-        if (aiMessage) {
-            setMessages((prev) => [
-                ...prev,
-                { role: "assistant", content: aiMessage },
-            ]);
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+
+                if (value) {
+                    const chunk = decoder.decode(value, { stream: true });
+
+                    setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastIndex = updated.length - 1;
+
+                        if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+                            updated[lastIndex] = {
+                                ...updated[lastIndex],
+                                content: (updated[lastIndex].content || "") + chunk,
+                            };
+                        }
+
+                        return updated;
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Chat error", error);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
-
     return (
         <>
             {/* Floating Button */}
@@ -123,3 +155,5 @@ export default function Chat() {
         </>
     );
 }
+
+export default Chat
