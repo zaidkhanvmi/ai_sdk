@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import axios from "axios";
 
 const Chat = () => {
     const [message, setMessage] = useState("");
@@ -26,6 +27,7 @@ const Chat = () => {
             { role: "user", content: userMessage },
             { role: "assistant", content: "" },
         ]);
+
         setLoading(true);
 
         try {
@@ -35,10 +37,13 @@ const Chat = () => {
                 body: JSON.stringify({ message: userMessage }),
             });
 
-            if (!res.ok || !res.body) {
-                setLoading(false);
-                return;
-            }
+            // const data = await res.json();
+            // setMessages(prev => [
+            //     ...prev,
+            //     { role: "assistant", content: data.text }
+            // ]);
+
+            // const reader 
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
@@ -58,20 +63,22 @@ const Chat = () => {
                         if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
                             updated[lastIndex] = {
                                 ...updated[lastIndex],
-                                content: (updated[lastIndex].content || "") + chunk,
+                                content: (updated[lastIndex].
+                                    content || "") + chunk,
                             };
                         }
-
                         return updated;
-                    });
+                    })
                 }
             }
+
         } catch (error) {
             console.error("Chat error", error);
         } finally {
             setLoading(false);
         }
     };
+
     return (
         <>
             {/* Floating Button */}
@@ -114,7 +121,7 @@ const Chat = () => {
                             <div
                                 className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === "user"
                                     ? "bg-gradient-to-br from-pink-500 to-purple-500 text-white rounded-br-sm"
-                                    : "bg-white border text-gray-800 rounded-bl-sm"
+                                    : "bg-white text-gray-800 rounded-bl-sm"
                                     }`}
                             >
                                 {m.content}

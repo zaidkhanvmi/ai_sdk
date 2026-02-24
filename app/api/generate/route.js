@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { generateText, streamText } from "ai";
 
 
 export async function GET() {
@@ -83,25 +83,25 @@ export async function POST(request) {
         }
 
         const companyInfo = `
-Vibrant Media Inc is a digital agency that provides:
-- Web Development
-- SaaS Development
-- SaaS Development
-- SEO & Marketing
-- Branding & Design
+        Vibrant Media Inc is a digital agency that provides:
+        - Web Development
+        - SaaS Development
+        - SaaS Development
+        - SEO & Marketing
+        - Branding & Design
 
-We specialize in multi-tenant platforms and enterprise systems.
+        We specialize in multi-tenant platforms and enterprise systems.
         `;
 
         const systemPrompt = `
-You are the official AI assistant of Vibrant Media Inc.
+        You are the official AI assistant of Vibrant Media Inc.
 
-Use the company information below to answer questions:
+        Use the company information below to answer questions:
 
-${companyInfo}
+        ${companyInfo}
 
-Keep answers short, professional, and sales-focused.
-If the question is unrelated to our services, politely redirect users to our contact page.
+        Keep answers short, professional, and sales-focused.
+        If the question is unrelated to our services, politely redirect users to our contact page.
         `;
 
         const stream = await streamText({
@@ -113,6 +113,17 @@ If the question is unrelated to our services, politely redirect users to our con
         });
 
         return stream.toTextStreamResponse();
+
+        // const generate = await generateText({
+        //     model: openai("gpt-4o-mini"),
+        //     messages: [
+        //         { role: "system", content: systemPrompt },
+        //         { role: "user", content: message }
+        //     ]
+        // });
+
+        // return NextResponse.json({ text: generate.text });
+
     } catch (error) {
         console.error("API Error", error);
         return new Response(
