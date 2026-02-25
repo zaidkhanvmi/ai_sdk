@@ -68,7 +68,7 @@ const Chat = () => {
                             };
                         }
                         return updated;
-                    })
+                    });
                 }
             }
 
